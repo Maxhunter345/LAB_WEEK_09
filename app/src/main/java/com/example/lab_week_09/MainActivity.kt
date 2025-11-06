@@ -32,7 +32,6 @@ import androidx.navigation.navArgument
 //Previously we extend AppCompatActivity,
 //now we extend ComponentActivity
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //Here, we use setContent instead of setContentView
@@ -48,11 +47,8 @@ class MainActivity : ComponentActivity() {
                     //and set it as the color of the surface
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Don’t forget to also change your root from Home() to App() inside your Surface function.
                     val navController = rememberNavController()
-                    App(
-                        navController = navController
-                    )
+                    App(navController = navController)
                 }
             }
         }
@@ -78,9 +74,7 @@ fun App(navController: NavHostController) {
         composable("home") {
             //Here, we pass a lambda function that navigates to "resultContent"
             //and pass the listData as a parameter
-            Home { navController.navigate(
-                "resultContent/?listData=$it")
-            }
+            Home { navController.navigate("resultContent/?listData=$it") }
         }
 
         //Here, we create a route called "resultContent"
@@ -93,14 +87,10 @@ fun App(navController: NavHostController) {
         //We use NavType.StringType to define the type of the argument
         composable(
             "resultContent/?listData={listData}",
-            arguments = listOf(navArgument("listData") {
-                type = NavType.StringType }
-            )
+            arguments = listOf(navArgument("listData") { type = NavType.StringType })
         ) {
             //Here, we pass the value of the argument to the ResultContent composable
-            ResultContent(
-                it.arguments?.getString("listData").orEmpty()
-            )
+            ResultContent(it.arguments?.getString("listData").orEmpty())
         }
     }
 }
@@ -121,11 +111,13 @@ fun Home(
     //We use mutableStateListOf to make the list mutable
     //This is so that we can add or remove items from the list
     //If you're still confused, this is basically the same concept as using useState in React
-    val listData = remember { mutableStateListOf(
-        Student("Tanu"),
-        Student("Tina"),
-        Student("Tono")
-    )}
+    val listData = remember {
+        mutableStateListOf(
+            Student("Tanu"),
+            Student("Tina"),
+            Student("Tono")
+        )
+    }
 
     //Here, we create a mutable state of Student
     //This is so that we can get the value of the input field
@@ -138,8 +130,13 @@ fun Home(
         inputField,
         { input -> inputField = inputField.copy(input) },
         {
-            listData.add(inputField)
-            inputField = inputField.copy("")
+            // FIX: Prevent empty submissions (trim + check)
+            val value = inputField.name.trim()
+            if (value.isNotEmpty()) {
+                listData.add(Student(value))
+                inputField = inputField.copy("")
+            }
+            // else: do nothing so no blank item is added
         },
         { navigateFromHomeToResult(listData.toList().toString()) }
     )
@@ -171,9 +168,7 @@ fun HomeContent(
                 //You can also use verticalArrangement = Arrangement.Center to align the Column vertically
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                OnBackgroundTitleText(text = stringResource(
-                    id = R.string.enter_item)
-                )
+                OnBackgroundTitleText(text = stringResource(id = R.string.enter_item))
 
                 TextField(
                     //Set the value of the input field
@@ -183,15 +178,18 @@ fun HomeContent(
                         keyboardType = KeyboardType.Text
                     ),
                     //Set what happens when the value of the input field changes
-                    onValueChange = {
-                        onInputValueChange(it)
-                    }
+                    onValueChange = { onInputValueChange(it) },
+                    // OPTIONAL UX: show red state when empty (visual hint only)
+                    isError = inputField.name.trim().isEmpty()
                 )
 
-                // Next still in your HomeContent Composable, add a Finish Button to navigate to the other page.
                 Row {
+                    //Here, we call the PrimaryTextButton UI Element
                     PrimaryTextButton(text = stringResource(id = R.string.button_click)) {
-                        onButtonClick()
+                        // FIX: Double-guard on click (no-op when blank)
+                        if (inputField.name.trim().isNotEmpty()) {
+                            onButtonClick()
+                        }
                     }
                     PrimaryTextButton(text = stringResource(id = R.string.button_navigate)) {
                         navigateFromHomeToResult()
